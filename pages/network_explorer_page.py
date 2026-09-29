@@ -54,12 +54,11 @@ class NetworkExplorerPage:
         )
 
     def clear_session_data(self):
-        """Clear browser cookies, local storage, and session storage."""
-
-        # Clear browser cookies
+      
+        # Clear authentication cookies
         self.page.context.clear_cookies()
 
-        # Clear localStorage and sessionStorage
+        # Clear browser storage
         self.page.evaluate(
             """
             () => {
@@ -68,3 +67,5 @@ class NetworkExplorerPage:
             }
             """
         )
+
+        

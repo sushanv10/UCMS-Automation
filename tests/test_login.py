@@ -3,209 +3,313 @@ from playwright.sync_api import Page, expect
 
 from config.config import Config
 from pages.login_page import LoginPage
-from test_data.login_test_data import CASE_SENSITIVE_PASSWORD, INVALID_CREDENTIALS, INVALID_PASSWORD, INVALID_USERNAME, LOADING_BUTTON_TEXT, PASSWORD_REQUIRED, PASSWORD_TOO_SHORT, SHORT_PASSWORD, TOO_MANY_ATTEMPTS, USERNAME_REQUIRED
+from test_data.login_test_data import (
+    CASE_SENSITIVE_PASSWORD,
+    INVALID_CREDENTIALS,
+    INVALID_PASSWORD,
+    INVALID_USERNAME,
+    LOADING_BUTTON_TEXT,
+    PASSWORD_REQUIRED,
+    PASSWORD_TOO_SHORT,
+    SHORT_PASSWORD,
+    TOO_MANY_ATTEMPTS,
+    USERNAME_REQUIRED,
+)
 
 
+# ============================================================
+# TC_LOGIN_001
+# ============================================================
 
 @pytest.mark.login
-def test_TC_LOGIN_001_login_with_valid_credentials(page: Page, credentials: tuple[str, str]):
+def test_TC_LOGIN_001_login_with_valid_credentials(
+    page: Page,
+    credentials: tuple[str, str],
+):
     """
     TC_LOGIN_001:
     Verify login with valid username and password.
-    """
 
-    username, password = credentials
+    Expected:
+        User is successfully authenticated and redirected
+        to the Network Explorer page.
+    """
 
     login_page = LoginPage(page)
 
-    # 1. Navigate to login page
+    username, password = credentials
+
+    # Navigate to Login
     login_page.navigate()
 
-    # 2. Verify login form
+    # Verify Login page
     login_page.verify_login_page_visible()
 
-    # 3. Fill credentials from .env
+    # Enter valid credentials
     login_page.enter_username(username)
     login_page.enter_password(password)
 
-    # 4. Click Sign in
+    # Sign in
     login_page.click_sign_in()
 
-    # 5. Wait for login processing
-    page.wait_for_timeout(3000)
-
-    print(f"\nCurrent URL: {page.url}")
-    print(f"Page title: {page.title()}")
-
-
-    # 6. Verify successful login
+    # Verify successful login
     expect(page).to_have_url(
         Config.NETWORK_EXPLORER_URL,
         timeout=15000,
     )
 
+    print(f"\nCurrent URL: {page.url}")
+    print(f"Page title: {page.title()}")
+
+    print(
+        "\nTC_LOGIN_001 passed."
+        "\nUser successfully logged in."
+    )
+
+
+# ============================================================
+# TC_LOGIN_002
+# ============================================================
+
 @pytest.mark.login
-def test_TC_LOGIN_002_sign_in_button_loading_state(page: Page, credentials: tuple[str, str]):
+def test_TC_LOGIN_002_sign_in_button_loading_state(
+    page: Page,
+    credentials: tuple[str, str],
+):
     """
     TC_LOGIN_002:
     Verify that the Sign in button shows a loading state
     and becomes disabled while the login request is processing.
 
-    Steps:
-    1. Navigate to the login page.
-    2. Enter a valid username.
-    3. Enter a valid password.
-    4. Click the Sign in button.
-    5. Verify that the button shows a loading state.
-    6. Verify that the button is disabled during processing.
+    Expected:
+        The Sign in button becomes disabled and displays
+        the loading text while authentication is processing.
     """
 
     login_page = LoginPage(page)
 
-    # 1. Navigate to the login page
-    login_page.navigate()
-
-    # 2. Verify the login form
-    login_page.verify_login_page_visible()
-
-    # 3. Load valid credentials from .env
     username, password = credentials
 
-    # 4. Enter valid username and password
+    # Navigate to Login
+    login_page.navigate()
+
+    # Verify Login page
+    login_page.verify_login_page_visible()
+
+    # Enter valid credentials
     login_page.enter_username(username)
     login_page.enter_password(password)
 
-    # 5. Click Sign in
+    # Click Sign in
     login_page.click_sign_in()
 
-    # 6. Verify loading text and disabled state
-    expect(login_page.sign_in_button).to_be_disabled(
+    # Verify button is disabled
+    expect(
+        login_page.sign_in_button
+    ).to_be_disabled(
         timeout=5000
     )
 
-    expect(login_page.sign_in_button).to_contain_text(
+    # Verify loading text
+    expect(
+        login_page.sign_in_button
+    ).to_contain_text(
         LOADING_BUTTON_TEXT,
-        timeout=5000,
+        timeout=10000,
+    )
+
+    print(
+        "\nTC_LOGIN_002 passed."
+        "\nSign in button entered the expected loading state."
     )
 
 
+# ============================================================
+# TC_LOGIN_003
+# ============================================================
+
 @pytest.mark.login
-def test_TC_LOGIN_003_empty_username_and_password(page: Page):
+def test_TC_LOGIN_003_empty_username_and_password(
+    page: Page,
+):
     """
     TC_LOGIN_003:
     Validate empty username and password fields.
 
-    Steps:
-    1. Navigate to the login page.
-    2. Leave the username field empty.
-    3. Leave the password field empty.
-    4. Click the Sign in button.
-    5. Verify both required-field validation messages.
+    Expected:
+        Required-field validation messages are displayed
+        for both username and password.
     """
 
     login_page = LoginPage(page)
 
-    # 1. Navigate to the login page
+    # Navigate to Login
     login_page.navigate()
 
-    # 2. Verify that the login form is visible
+    # Verify Login page
     login_page.verify_login_page_visible()
 
-    # 3. Make sure both fields are empty
+    # Leave both fields empty
     login_page.username_input.fill("")
-    login_page.password_input.fill("")
-
-    # 4. Click Sign in
-    login_page.click_sign_in()
-
-    # 5. Verify username validation message
-    expect(page.get_by_text(USERNAME_REQUIRED, exact=True)).to_be_visible(
-        timeout=5000
-    )
-
-    # 6. Verify password validation message
-    expect(page.get_by_text(PASSWORD_REQUIRED, exact=True)).to_be_visible(
-        timeout=5000
-    )
-
-    # 7. Verify that the user remains on the login page
-    expect(page).to_have_url(
-        Config.LOGIN_URL,
-        timeout=5000,
-    )
-
-@pytest.mark.login
-def test_TC_LOGIN_004_empty_username(page: Page):
-    """
-    TC_LOGIN_004:
-    Validate empty username field.
-
-    Steps:
-    1. Navigate to the login page.
-    2. Leave the username field empty.
-    3. Enter a valid password.
-    4. Click the Sign in button.
-    5. Verify the required-field validation message for the username.
-    """
-
-    login_page = LoginPage(page)
-
-    # 1. Navigate to the login page
-    login_page.navigate()
-
-    # 2. Verify that the login form is visible
-    login_page.verify_login_page_visible()
-
-    # 3. Make sure username field is empty and enter a valid password
-    login_page.username_input.fill("")
-    login_page.password_input.fill(Config.VALID_PASSWORD)
-
-    # 4. Click Sign in
-    login_page.click_sign_in()
-
-    # 5. Verify username validation message
-    expect(page.get_by_text(USERNAME_REQUIRED, exact=True)).to_be_visible(
-        timeout=5000
-    )
-
-@pytest.mark.login
-def test_TC_LOGIN_005_empty_password(page: Page):
-    login_page = LoginPage(page)
-
-    login_page.navigate()
-
-    login_page.verify_login_page_visible()
-
-    # 3. Make sure password field is empty and enter a valid username
-    login_page.username_input.fill(Config.VALID_USERNAME)
     login_page.password_input.fill("")
 
     # Click Sign in
     login_page.click_sign_in()
 
-    # Verify password validation message
-    expect(page.get_by_text(PASSWORD_REQUIRED, exact=True)).to_be_visible(
+    # Verify username validation
+    expect(
+        page.get_by_text(
+            USERNAME_REQUIRED,
+            exact=True,
+        )
+    ).to_be_visible(
         timeout=5000
     )
 
+    # Verify password validation
+    expect(
+        page.get_by_text(
+            PASSWORD_REQUIRED,
+            exact=True,
+        )
+    ).to_be_visible(
+        timeout=5000
+    )
+
+    # Verify user remains on Login
+    expect(page).to_have_url(
+        Config.LOGIN_URL,
+        timeout=5000,
+    )
+
+    print(
+        "\nTC_LOGIN_003 passed."
+        "\nUsername and password required-field validation works."
+    )
+
+
+# ============================================================
+# TC_LOGIN_004
+# ============================================================
+
 @pytest.mark.login
-def test_TC_LOGIN_006_login_with_invalid_credentials(page: Page):
+def test_TC_LOGIN_004_empty_username(
+    page: Page,
+    credentials: tuple[str, str],
+):
+    """
+    TC_LOGIN_004:
+    Validate empty username field.
+
+    Expected:
+        Username required validation message is displayed.
+    """
+
+    login_page = LoginPage(page)
+
+    _, password = credentials
+
+    # Navigate to Login
+    login_page.navigate()
+
+    # Verify Login page
+    login_page.verify_login_page_visible()
+
+    # Empty username + valid password
+    login_page.username_input.fill("")
+    login_page.password_input.fill(password)
+
+    # Click Sign in
+    login_page.click_sign_in()
+
+    # Verify username validation
+    expect(
+        page.get_by_text(
+            USERNAME_REQUIRED,
+            exact=True,
+        )
+    ).to_be_visible(
+        timeout=5000
+    )
+
+    print(
+        "\nTC_LOGIN_004 passed."
+        "\nUsername required validation works."
+    )
+
+
+# ============================================================
+# TC_LOGIN_005
+# ============================================================
+
+@pytest.mark.login
+def test_TC_LOGIN_005_empty_password(
+    page: Page,
+    credentials: tuple[str, str],
+):
+    """
+    TC_LOGIN_005:
+    Validate empty password field.
+
+    Expected:
+        Password required validation message is displayed.
+    """
+
+    login_page = LoginPage(page)
+
+    username, _ = credentials
+
+    # Navigate to Login
+    login_page.navigate()
+
+    # Verify Login page
+    login_page.verify_login_page_visible()
+
+    # Valid username + empty password
+    login_page.username_input.fill(username)
+    login_page.password_input.fill("")
+
+    # Click Sign in
+    login_page.click_sign_in()
+
+    # Verify password validation
+    expect(
+        page.get_by_text(
+            PASSWORD_REQUIRED,
+            exact=True,
+        )
+    ).to_be_visible(
+        timeout=5000
+    )
+
+    print(
+        "\nTC_LOGIN_005 passed."
+        "\nPassword required validation works."
+    )
+
+
+# ============================================================
+# TC_LOGIN_006
+# ============================================================
+
+@pytest.mark.login
+def test_TC_LOGIN_006_login_with_invalid_credentials(
+    page: Page,
+):
     """
     TC_LOGIN_006:
     Validate login with invalid credentials.
 
-    Steps:
-    1. Navigate to the login page.
-    2. Enter invalid username.
-    3. Enter invalid password.
-    4. Click the Sign in button.
+    Expected:
+        Invalid credentials message is displayed.
     """
+
     login_page = LoginPage(page)
 
-    # Navigate to login page 
+    # Navigate to Login
     login_page.navigate()
 
-    # Verify login form is visible
+    # Verify Login page
     login_page.verify_login_page_visible()
 
     # Enter invalid credentials
@@ -215,214 +319,262 @@ def test_TC_LOGIN_006_login_with_invalid_credentials(page: Page):
     # Click Sign in
     login_page.click_sign_in()
 
-    # Verify invalid credentials message
-    expect(page.get_by_text(INVALID_CREDENTIALS, exact=True)).to_be_visible(
+    # Verify error message
+    expect(
+        page.get_by_text(
+            INVALID_CREDENTIALS,
+            exact=True,
+        )
+    ).to_be_visible(
         timeout=5000
     )
 
+    print(
+        "\nTC_LOGIN_006 passed."
+        "\nInvalid credentials were rejected correctly."
+    )
+
+
+# ============================================================
+# TC_LOGIN_007
+# ============================================================
+
 @pytest.mark.login
-def test_TC_LOGIN_007_verify_password_case_sensitivity(page: Page):
+def test_TC_LOGIN_007_verify_password_case_sensitivity(
+    page: Page,
+    credentials: tuple[str, str],
+):
+    """
+    TC_LOGIN_007:
+    Verify password case sensitivity.
+
+    Expected:
+        A password with incorrect casing is rejected.
+    """
+
     login_page = LoginPage(page)
 
+    username, _ = credentials
+
+    # Navigate to Login
     login_page.navigate()
 
+    # Verify Login page
     login_page.verify_login_page_visible()
 
-    # Enter valid username and case-sensitive password
-    login_page.enter_username(Config.VALID_USERNAME)
+    # Enter username and intentionally incorrect
+    # case-sensitive password
+    login_page.enter_username(username)
     login_page.enter_password(CASE_SENSITIVE_PASSWORD)
 
     # Click Sign in
     login_page.click_sign_in()
 
-    # Verify invalid credentials message
-    expect(page.get_by_text(INVALID_CREDENTIALS, exact=True)).to_be_visible(
-        timeout=5000
+    # Verify invalid credentials
+    expect(
+        page.get_by_text(
+            INVALID_CREDENTIALS,
+            exact=True,
+        )
+    ).to_be_visible()
+
+    print(
+        "\nTC_LOGIN_007 passed."
+        "\nPassword case sensitivity is enforced."
     )
 
-    
-@pytest.mark.login 
-def test_TC_LOGIN_008_verify_password_minimum_length(page: Page):
+
+# ============================================================
+# TC_LOGIN_008
+# ============================================================
+
+@pytest.mark.login
+def test_TC_LOGIN_008_verify_password_minimum_length(
+    page: Page,
+    credentials: tuple[str, str],
+):
     """
     TC_LOGIN_008:
-    Verify that the system enforces a minimum password length.
+    Verify that the system enforces minimum password length.
 
-    Steps:
-    1. Navigate to the login page.
-    2. Enter a valid username.
-    3. Enter a password shorter than the minimum required length (e.g., 8 characters).
-    4. Click the Sign in button.
-    5. Verify that the appropriate validation message is displayed.
+    Expected:
+        Password-too-short validation message is displayed.
     """
 
     login_page = LoginPage(page)
 
-    # 1. Navigate to the login page
+    username, _ = credentials
+
+    # Navigate to Login
     login_page.navigate()
 
-    # 2. Verify that the login form is visible
+    # Verify Login page
     login_page.verify_login_page_visible()
 
-    # 3. Enter a valid username and a short password
-    login_page.enter_username(Config.VALID_USERNAME)
+    # Valid username + short password
+    login_page.enter_username(username)
     login_page.enter_password(SHORT_PASSWORD)
 
-    # 4. Click the Sign in button
+    # Click Sign in
     login_page.click_sign_in()
 
-    # 5. Verify that the appropriate validation message is displayed
-    expect(page.get_by_text(
-        PASSWORD_TOO_SHORT, exact=True,)).to_be_visible(
-        timeout=5000
+    # Verify validation message
+    expect(
+        page.get_by_text(
+            PASSWORD_TOO_SHORT,
+            exact=True,
+        )
+    ).to_be_visible()
+
+    print(
+        "\nTC_LOGIN_008 passed."
+        "\nPassword minimum-length validation works."
     )
 
-@pytest.mark.login 
-def test_TC_LOGIN_009_verify_direct_URL_access_without_authentication(page: Page):
-    """
-    TC_LOGIN_009:
-    Verify that accessing a protected URL directly without authentication
-    redirects the user to the login page.
 
-    Steps:
-    1. Attempt to access a protected URL (/map) directly.
-    2. Verify that the user is redirected to the login page.
-    """
-
-    # 1. Attempt to access a protected URL directly
-    protected_url = Config.PROTECTED_URL
-    page.goto(protected_url)
-
-    # 2. Verify that the user is redirected to the login page
-    expect(page).to_have_url(
-        Config.LOGIN_URL,
-        timeout=5000,
-    )
-    
+# ============================================================
+# TC_LOGIN_009
+# ============================================================
 
 @pytest.mark.login
-def test_tc_login_010_session_persistence_on_refresh(page: Page):
+def test_TC_LOGIN_009_verify_direct_URL_access_without_authentication(
+    page: Page,
+):
+    """
+    TC_LOGIN_009:
+    Verify that accessing a protected URL directly without
+    authentication redirects the user to Login.
+
+    Expected:
+        Unauthenticated access to the protected Network Explorer
+        redirects the browser to the Login page.
+    """
+
+    protected_url = Config.PROTECTED_URL
+
+    # Attempt direct access to protected route
+    page.goto(
+        protected_url,
+        wait_until="domcontentloaded",
+    )
+
+    # Verify redirect to Login
+    expect(page).to_have_url(
+        Config.LOGIN_URL)
+
+    print(
+        "\nTC_LOGIN_009 passed."
+        "\nUnauthenticated direct access was redirected to Login."
+    )
+
+
+# ============================================================
+# TC_LOGIN_010
+# ============================================================
+
+@pytest.mark.login
+def test_TC_LOGIN_010_session_persistence_on_refresh(
+    page: Page,
+    credentials: tuple[str, str],
+):
     """
     TC_LOGIN_010:
-    Verify that the authenticated session persists after a page refresh.
+    Verify that the authenticated session persists after
+    a page refresh.
 
-    Steps:
-    1. Navigate to the login page.
-    2. Sign in successfully using valid credentials.
-    3. Verify successful login.
-    4. Store the authenticated page URL.
-    5. Refresh the browser page.
-    6. Verify the user remains logged in.
-    7. Verify the user remains on the same page and is not
-       redirected to the login page.
+    Expected:
+        After successful authentication and page refresh,
+        the user remains authenticated and remains on
+        the Network Explorer page.
     """
 
     login_page = LoginPage(page)
 
-    # ---------------------------------------------------------
-    # 1. Navigate to login page
-    # ---------------------------------------------------------
+    username, password = credentials
+
+    # Navigate to Login
     login_page.navigate()
 
-    # Verify login form
+    # Verify Login page
     login_page.verify_login_page_visible()
 
-    # ---------------------------------------------------------
-    # 2. Load valid credentials from .env
-    # ---------------------------------------------------------
-    username = Config.VALID_USERNAME
-    password = Config.VALID_PASSWORD
-
-    if not username or not password:
-        pytest.fail(
-            "VALID_USERNAME and VALID_PASSWORD "
-            "must be configured in the .env file."
-        )
-
-    # ---------------------------------------------------------
-    # 3. Login successfully
-    # ---------------------------------------------------------
-    login_page.login(username, password)
-
-    # ---------------------------------------------------------
-    # 4. Verify successful login
-    # ---------------------------------------------------------
-    expect(page).to_have_url(
-        Config.NETWORK_EXPLORER_URL,
-        timeout=15000,
+    # Login
+    login_page.login(
+        username,
+        password,
     )
 
-    # Save the URL after successful authentication
+    # Verify successful authentication
+    expect(page).to_have_url(
+        Config.NETWORK_EXPLORER_URL
+    )
+
     authenticated_url = page.url
 
-    print(f"\nAuthenticated URL: {authenticated_url}")
+    print(
+        f"\nAuthenticated URL: {authenticated_url}"
+    )
 
-    # ---------------------------------------------------------
-    # 5. Refresh the browser page
-    # ---------------------------------------------------------
+    # Refresh page
     login_page.refresh_page()
 
-    # ---------------------------------------------------------
-    # 6. Verify user remains on the same page
-    # ---------------------------------------------------------
+    # Verify user remains on same page
     expect(page).to_have_url(
         authenticated_url,
-        timeout=15000,
     )
 
-    # ---------------------------------------------------------
-    # 7. Verify user was NOT redirected to login
-    # ---------------------------------------------------------
+    # Verify user was not redirected to Login
     assert Config.LOGIN_URL not in page.url, (
-        "User was redirected to the login page after refresh."
+        "User was redirected to the Login page after refresh."
     )
 
     print(
-        "\nSession persistence verified successfully."
+        "\nTC_LOGIN_010 passed."
+        "\nSession persisted successfully after refresh."
+        f"\nUser remained on: {page.url}"
     )
-    print(
-        f"User remained on: {page.url}"
-    )
+
+
+# ============================================================
+# TC_LOGIN_011
+# ============================================================
 
 @pytest.mark.login
-def test_tc_login_011_repeated_failed_login_attempts(
+def test_TC_LOGIN_011_repeated_failed_login_attempts(
     page: Page,
     credentials: tuple[str, str],
 ):
     """
     TC_LOGIN_011:
-    Verify system behavior after multiple consecutive failed login attempts.
+    Verify system behavior after multiple consecutive
+    failed login attempts.
 
     Test data:
         Username: Valid username from .env
-        Password: test_password
+        Password: INVALID_PASSWORD
         Attempts: 6
 
     Expected:
-        "Too Many Attempts" message should be displayed
-        after repeated failed login attempts.
+        "Too Many Attempts" message is displayed after
+        repeated failed login attempts.
     """
 
     login_page = LoginPage(page)
 
-    # --------------------------------------------------
-    # Step 1: Navigate to login page
-    # --------------------------------------------------
+    username = Config.LOCKED_USERNAME
+
+    # Navigate to Login
     login_page.navigate()
 
-    # Verify login form is visible
+    # Verify Login page
     login_page.verify_login_page_visible()
 
-    # --------------------------------------------------
-    # Step 2: Get valid username from credentials fixture
-    # --------------------------------------------------
-    username, _ = credentials
-
-    # --------------------------------------------------
-    # Step 3: Perform 6 consecutive failed login attempts
-    # --------------------------------------------------
+    # Perform six failed attempts
     for attempt in range(1, 7):
 
-        print(f"\nLogin attempt {attempt}/6")
+        print(
+            f"\nLogin attempt {attempt}/6"
+        )
 
         # Enter valid username
         login_page.enter_username(username)
@@ -433,34 +585,27 @@ def test_tc_login_011_repeated_failed_login_attempts(
         # Click Sign in
         login_page.click_sign_in()
 
-        # --------------------------------------------------
         # Attempts 1-5
-        # --------------------------------------------------
         if attempt < 6:
 
-            # Wait for the login request to complete.
-            # This also confirms the button is no longer
-            # in the loading/disabled state.
+            # Wait until request processing finishes
+            # and button becomes available again.
             login_page.verify_sign_in_button_enabled()
 
             print(
-                f"Attempt {attempt} completed with invalid credentials."
+                f"Attempt {attempt} completed with "
+                "invalid credentials."
             )
 
-        # --------------------------------------------------
         # Attempt 6
-        # --------------------------------------------------
         else:
-
-            # Verify account/request throttling message
+            # Verify throttling/rate-limit message
             expect(
                 page.get_by_text(
                     TOO_MANY_ATTEMPTS,
                     exact=False,
                 )
-            ).to_be_visible(
-                timeout=5000
-            )
+            ).to_be_visible()
 
             print(
                 "\nToo Many Attempts message displayed."

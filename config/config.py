@@ -20,11 +20,13 @@ class Config:
     LOGIN_URL: str = f"{BASE_URL}/login"
     DASHBOARD_URL: str = f"{BASE_URL}/dashboard" 
     NETWORK_EXPLORER_URL: str = f"{BASE_URL}/map"
-    PROTECTED_URL: str = f"{BASE_URL}/map" 
+    PROTECTED_URL: str = NETWORK_EXPLORER_URL
 
     # Credentials
     VALID_USERNAME: str = os.getenv("VALID_USERNAME")
     VALID_PASSWORD: str = os.getenv("VALID_PASSWORD")
+    LOCKED_USERNAME: str = os.getenv("LOCKED_USERNAME")
+    LOCKED_PASSWORD:str = os.getenv("LOCKED_PASSWORD")
 
     # User display info (from profile button)
     USER_FULL_NAME: str = os.getenv("USER_FULL_NAME", "Sushan Vaidya")

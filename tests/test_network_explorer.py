@@ -63,32 +63,37 @@ def test_TC_NETWORK_EXPLORER_001_page_load(
     )
 
 @pytest.mark.network_explorer
-def test_TC_NETWORK_EXPLORER_002_redirects_to_login_after_session_clear(page: Page, credentials: tuple[str, str]):
+def test_TC_NETWORK_EXPLORER_002_redirects_to_login_after_session_clear(
+    page: Page,
+    credentials: tuple[str, str],
+):
     """
     TC_NETWORK_EXPLORER_002:
-    Verify that the Network Explorer redirects to the login page
-    after clearing cookies and session data.
+
+    Verify that the Network Explorer redirects to the Login page
+    after the authenticated browser session is cleared.
 
     Steps:
-    1. Log in to the application.
-    2. Navigate to the Network Explorer.
-    3. Clear browser cookies, local storage, and session storage.
-    4. Reload the Network Explorer page.
-    5. Verify that the user is redirected to the Login page.
+        1. Navigate to Login.
+        2. Log in using valid credentials.
+        3. Verify Network Explorer is loaded.
+        4. Clear cookies, localStorage, and sessionStorage.
+        5. Reload Network Explorer.
+        6. Verify redirection to Login.
+        7. Verify Login page is displayed.
 
     Expected:
-        The system should detect that the session is no longer valid
-        and redirect the user to the Login page.
+        After the authenticated session is removed, accessing the
+        protected Network Explorer should redirect the user to Login.
     """
 
     login_page = LoginPage(page)
     network_explorer_page = NetworkExplorerPage(page)
 
     # --------------------------------------------------
-    # Step 1: Navigate to login page
+    # Step 1: Navigate to Login
     # --------------------------------------------------
     login_page.navigate()
-
     login_page.verify_login_page_visible()
 
     # --------------------------------------------------
@@ -97,61 +102,44 @@ def test_TC_NETWORK_EXPLORER_002_redirects_to_login_after_session_clear(page: Pa
     username, password = credentials
 
     # --------------------------------------------------
-    # Step 3: Log in successfully
+    # Step 3: Login
     # --------------------------------------------------
     login_page.login(username, password)
 
     # --------------------------------------------------
-    # Step 4: Verify Network Explorer is loaded
+    # Step 4: Verify Network Explorer
     # --------------------------------------------------
     network_explorer_page.verify_page_loaded()
 
-    print(
-        f"\nUser successfully logged in."
-        f"\nCurrent URL: {page.url}"
-    )
 
     # --------------------------------------------------
-    # Step 5: Clear cookies and browser session data
+    # Step 5: Clear authenticated session
     # --------------------------------------------------
     network_explorer_page.clear_session_data()
 
-    print(
-        "\nCookies, localStorage, and sessionStorage cleared."
+
+    # --------------------------------------------------
+    # Step 6: Reload protected page
+    # --------------------------------------------------
+    page.reload(
+        wait_until="domcontentloaded"
     )
 
     # --------------------------------------------------
-    # Step 6: Reload Network Explorer
-    # --------------------------------------------------
-    page.reload()
-
-    print(
-        f"\nURL after session data was cleared: {page.url}"
-    )
-
-    # --------------------------------------------------
-    # Step 7: Verify redirect to Login page
+    # Step 7: Verify redirect to Login
     # --------------------------------------------------
     expect(page).to_have_url(
-        Config.LOGIN_URL,
-        timeout=15000,
+        Config.LOGIN_URL
     )
 
     # --------------------------------------------------
-    # Step 8: Verify Login page is displayed
+    # Step 8: Verify Login page
     # --------------------------------------------------
     login_page.verify_login_page_visible()
 
     # --------------------------------------------------
-    # Step 9: Verify protected Network Explorer content
-    #         is no longer accessible
+    # Step 9: Verify Network Explorer is no longer visible
     # --------------------------------------------------
     expect(
-        network_explorer_page.select_row_message
-    ).not_to_be_visible(timeout=3000)
-
-    print(
-        "\nTC_DASHBOARD_002 passed."
-        "\nSession was invalidated and the user was "
-        "redirected to the Login page."
-    )
+        network_explorer_page.coverage_button
+    ).not_to_be_visible(timeout=5000)

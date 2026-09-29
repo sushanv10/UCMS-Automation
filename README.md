@@ -94,28 +94,6 @@ reports/report.html
 
 Screenshots of failed tests are saved under `screenshots/`.
 
----
-
-## Test Cases Covered
-
-| Testcase ID              | Description                                      |
-|--------------------------|--------------------------------------------------|
-| TC_LOGIN_001             | Login with valid credentials                     |
-| TC_LOGIN_002             | Sign-in button loading / disabled state          |
-| TC_LOGIN_003             | Empty username + password                        |
-| TC_LOGIN_004             | Empty username                                   |
-| TC_LOGIN_005             | Empty password                                   |
-| TC_LOGIN_006             | Invalid credentials                              |
-| TC_LOGIN_007             | Password case sensitivity                        |
-| TC_LOGIN_008             | Repeated failed login attempts                   |
-| TC_LOGIN_009             | Password shorter than 8 characters               |
-| TC_LOGIN_010             | Direct URL access without authentication         |
-| TC_LOGIN_011             | Session persistence on browser refresh           |
-| TC_DASHBOARD_001         | Dashboard / saved page loads after login         |
-| TC_DASHBOARD_002         | Clearing session redirects to login              |
-| TC_DASHBOARD_003         | Logout via Sign out                              |
-
----
 
 ## Important Notes for Beginners
 
@@ -149,4 +127,3 @@ Screenshots of failed tests are saved under `screenshots/`.
 
 ---
 
-Happy testing!
