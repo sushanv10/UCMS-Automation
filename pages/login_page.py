@@ -71,6 +71,12 @@ class LoginPage:
         self.enter_password(password)
         self.click_sign_in()
 
+    def verify_login_successful(self):
+        expect(self.page).to_have_url(
+            Config.NETWORK_EXPLORER_URL,
+            timeout=15000,
+        )
+
     def refresh_page(self):
         """Refresh the current page."""
         self.page.reload(wait_until="domcontentloaded")

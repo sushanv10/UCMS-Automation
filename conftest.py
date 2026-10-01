@@ -67,6 +67,22 @@ def credentials():
 
     return Config.VALID_USERNAME, Config.VALID_PASSWORD
 
+@pytest.fixture
+def restricted_credentials():
+    """
+    Return the restricted-role UCMS username and password from .env.
+    Used for nav bar role-based visibility tests (TC_NAVBAR_017, 018, 043, 059)
+    where this account must lack access to at least one module (e.g. Outages
+    or Port Allocations - confirm which with whoever seeded the test account).
+    """
+    if not Config.has_restricted_credentials():
+        pytest.fail(
+            "Restricted-role credentials are missing. "
+            "Set RESTRICTED_USERNAME and RESTRICTED_PASSWORD in .env."
+        )
+
+    return Config.RESTRICTED_USERNAME, Config.RESTRICTED_PASSWORD
+
 
 # ============================================================================
 # AUTHENTICATION / SESSION DIAGNOSTICS
