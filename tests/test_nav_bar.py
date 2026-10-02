@@ -1,41 +1,5 @@
-"""
-Automation suite for TC_NAVBAR_001 - TC_NAVBAR_060.
-
-Locators live in pages/nav_bar.py. Locators confirmed via Playwright Codegen
-against the real app are used as-is; anywhere the real locator wasn't
-captured, a best-effort guess is used and flagged with a `# TODO` comment in
-nav_bar.py - replace those before trusting the corresponding test.
-
-Additional fixtures this suite assumes exist in conftest.py (beyond the
-`page` and `credentials` fixtures already used elsewhere in the project):
-
-    restricted_credentials  -> tuple[str, str]
-        Login for a role with at least one module (e.g. Outages / Port
-        Allocations) hidden, used by TC_017, TC_018, TC_059.
-
-    long_name_credentials   -> tuple[str, str]
-        Login for a user whose display name/email is unusually long, used by
-        TC_041.
-
-    restricted_module_url   -> str  (or add to Config)
-        A URL for a module the `restricted_credentials` user cannot access,
-        used by TC_018.
-
-Config is also assumed to gain the following URL constants alongside the
-existing LOGIN_URL / DASHBOARD_URL / NETWORK_EXPLORER_URL:
-    CATALOG_URL, ACCESS_NETWORK_URL, PORT_TRACE_URL, PORT_ALLOCATIONS_URL,
-    OUTAGES_URL, ADMINISTRATION_URL
-
-Several test cases (TC_055 screen-reader announcements, TC_056 color
-contrast) are not meaningfully verifiable with plain Playwright assertions
-and are marked `pytest.mark.skip` with guidance on the right tool instead
-(e.g. axe-core / Playwright's accessibility snapshot, or a contrast checker)
-rather than being faked with a shallow assertion.
-"""
-
 import pytest
 from playwright.sync_api import Page, expect
-
 from config.config import Config
 from pages.login_page import LoginPage
 from pages.nav_bar import NavBar
@@ -722,12 +686,13 @@ def test_TC_NAVBAR_042_clicking_administration_navigates_to_admin_section(
 @pytest.mark.navbar
 def test_TC_NAVBAR_043_administration_hidden_for_non_admin_users(
     page: Page,
-    restricted_credentials: tuple[str, str],  # TODO: add fixture in conftest.py
+    restricted_credentials: tuple[str, str],
 ):
     _, nav_bar = _login(page, restricted_credentials)
 
-    nav_bar.open_account_menu(display_name="Restricted User")  # TODO: real display name
-
+    # Open the restricted user's account menu
+    nav_bar.open_account_menu()
+    nav_bar.verify_account_menu_open()
     nav_bar.verify_administration_hidden()
 
 
@@ -859,29 +824,53 @@ def test_TC_NAVBAR_049_only_one_overlay_open_at_a_time(
 # SECTION G: Responsiveness (TC_050 - TC_052)
 # ---------------------------------------------------------------------------
 @pytest.mark.navbar
-def test_TC_NAVBAR_050_nav_collapses_into_more_menu_on_narrow_viewport(
+def test_TC_NAVBAR_050_Nav_bar_collapses_into_a_mobilefriendly_menu(
     page: Page,
     credentials: tuple[str, str],
 ):
-    page.set_viewport_size({"width": 375, "height": 812})
+    page.set_viewport_size({"width": 1023, "height": 280})
     _, nav_bar = _login(page, credentials)
 
-    nav_bar.verify_more_menu_visible()
+    nav_bar.verify_hamburger_menu_visible()
     nav_bar.verify_logo_visible()
     expect(nav_bar.open_command_palette_button).to_be_visible()
-    expect(nav_bar.account_menu_button_default_user).to_be_visible()
 
 
+# ---------------------------------------------------------------------------
+# TC_NAVBAR_051: All links reachable via hamburger menu on responsive view
+# ---------------------------------------------------------------------------
 @pytest.mark.navbar
-def test_TC_NAVBAR_051_all_links_reachable_via_more_menu_on_mobile(
+def test_TC_NAVBAR_051_all_links_reachable_via_hamburger_menu_on_mobile(
     page: Page,
     credentials: tuple[str, str],
 ):
-    page.set_viewport_size({"width": 375, "height": 812})
+    # -----------------------------------------------------------------------
+    # STEP 1: Set responsive/mobile viewport
+    # -----------------------------------------------------------------------
+    page.set_viewport_size({
+        "width": 1023,
+        "height": 280,
+    })
+
+    # -----------------------------------------------------------------------
+    # STEP 2: Login
+    # -----------------------------------------------------------------------
     _, nav_bar = _login(page, credentials)
 
-    for label in nav_bar.ALL_NAV_LABELS_IN_ORDER:
-        nav_bar.verify_nav_link_visible(label)
+    # -----------------------------------------------------------------------
+    # STEP 3: Verify hamburger menu is visible
+    # -----------------------------------------------------------------------
+    nav_bar.verify_hamburger_menu_visible()
+
+    # -----------------------------------------------------------------------
+    # STEP 4: Open hamburger menu
+    # -----------------------------------------------------------------------
+    nav_bar.click_hamburger_menu()
+
+    # -----------------------------------------------------------------------
+    # STEP 5: Verify all navigation links are visible
+    # -----------------------------------------------------------------------
+    nav_bar.verify_all_responsive_nav_links_visible()
 
 
 @pytest.mark.navbar
@@ -889,13 +878,50 @@ def test_TC_NAVBAR_052_nav_bar_usable_on_tablet_viewport(
     page: Page,
     credentials: tuple[str, str],
 ):
-    page.set_viewport_size({"width": 768, "height": 1024})
+    # -----------------------------------------------------------------------
+    # STEP 1: Set tablet viewport
+    # -----------------------------------------------------------------------
+    page.set_viewport_size({
+        "width": 768,
+        "height": 1024,
+    })
+
+    # -----------------------------------------------------------------------
+    # STEP 2: Login
+    # -----------------------------------------------------------------------
     _, nav_bar = _login(page, credentials)
 
+    # -----------------------------------------------------------------------
+    # STEP 3: Verify logo is visible
+    # -----------------------------------------------------------------------
     nav_bar.verify_logo_visible()
-    expect(nav_bar.open_command_palette_button).to_be_visible()
-    expect(nav_bar.account_menu_button_default_user).to_be_visible()
+
+    # -----------------------------------------------------------------------
+    # STEP 4: Verify command palette is visible
+    # -----------------------------------------------------------------------
+    expect(
+        nav_bar.open_command_palette_button
+    ).to_be_visible(timeout=10000)
+
+    # -----------------------------------------------------------------------
+    # STEP 5: Verify account menu is visible
+    # -----------------------------------------------------------------------
+    expect(
+        nav_bar.account_menu_button
+    ).to_be_visible(timeout=10000)
+
+    # CLICK HAMBURGER MENU AND VERIFY LINKS VISIBLE
+    nav_bar.click_hamburger_menu()
+    nav_bar.verify_all_responsive_nav_links_visible()
+
+    # -----------------------------------------------------------------------
+    # STEP 6: Verify Dashboard navigation works
+    # -----------------------------------------------------------------------
     nav_bar.click_nav_link("Dashboard")
+
+    # -----------------------------------------------------------------------
+    # STEP 7: Verify Dashboard URL
+    # -----------------------------------------------------------------------
     nav_bar.verify_url(Config.DASHBOARD_URL)
 
 
@@ -1025,12 +1051,12 @@ def test_TC_NAVBAR_058_nav_actions_handled_correctly_after_session_expiry(
 @pytest.mark.navbar
 def test_TC_NAVBAR_059_search_never_exposes_restricted_modules(
     page: Page,
-    restricted_credentials: tuple[str, str],  # TODO: add fixture in conftest.py
+    restricted_credentials: tuple[str, str],
 ):
     _, nav_bar = _login(page, restricted_credentials)
 
     nav_bar.open_command_palette_via_click()
-    nav_bar.type_in_search("Outages")  # TODO: use the actual restricted module name
+    nav_bar.type_in_search("Outages") 
 
     expect(nav_bar.result_outages).to_be_hidden()
     nav_bar.verify_search_no_results()

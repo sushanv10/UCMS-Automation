@@ -1,30 +1,10 @@
 import re
 
 from playwright.sync_api import Page, Locator, expect
-
 from config.config import Config
 
 
 class NavBar:
-    """
-    Page Object for the global Nav Bar:
-      - UCMS logo
-      - Primary nav links (Dashboard, Network Explorer, Access Network,
-        Port Allocations, Outages) which are directly visible
-      - Overflow "More" menu (confirmed via codegen to currently hold
-        Port Trace and Catalog - this is a responsive overflow pattern,
-        so which links land in "More" vs. directly visible may change
-        with viewport width / number of modules)
-      - Global command palette (search), opened via the "Open command
-        palette" trigger or the Ctrl+K / Cmd+K shortcut
-      - User account menu (avatar/name trigger -> Administration / Sign out)
-
-    Locators marked CONFIRMED were captured directly via Playwright Codegen
-    against the real application. Locators marked "# TODO" are best-effort
-    guesses - replace with the real values from Codegen/Inspector before
-    relying on them.
-    """
-
     def __init__(self, page: Page):
         self.page = page
 
@@ -63,8 +43,7 @@ class NavBar:
             "Port Trace": self.port_trace_nav,
             "Catalog": self.catalog_nav,
         }
-        # NOTE: order below reflects the left-to-right / More-menu order
-        # observed. Update if the app's ordering differs.
+    
         self.ALL_NAV_LABELS_IN_ORDER = [
             "Dashboard",
             "Network Explorer",
@@ -83,6 +62,9 @@ class NavBar:
         self.command_palette = page.get_by_label("Command palette", exact=True)
         self.search_input = page.get_by_role("textbox", name="Search modules, pages, and actions…")
         self.esc_badge = page.locator("div").filter(has_text=re.compile(r"^Esc$"))
+
+        # Hamburger menu button (responsive nav)
+        self.hamburger_menu_button = page.get_by_role("button", name="Open navigation menu")
 
         # TODO: confirm exact copy of the empty-state message.
         self.search_no_results_text = page.get_by_text(
@@ -344,9 +326,48 @@ class NavBar:
         expect(self.sign_out_menuitem).to_be_visible()
         self.sign_out_menuitem.click()
 
-    # =================================================================
-    # Responsive
-    # =================================================================
-    def verify_more_menu_visible(self):
-        """At narrower viewports, lower-priority links collapse into 'More'."""
-        expect(self.more_nav_button).to_be_visible()
+  
+# Responsive / Hamburger navigation
+# =================================================================
+
+    def verify_hamburger_menu_visible(self):
+        """
+        Verify that the responsive hamburger navigation button is visible.
+        """
+        expect(
+            self.hamburger_menu_button
+        ).to_be_visible(timeout=10000)
+
+
+    def click_hamburger_menu(self):
+        """
+        Open the responsive hamburger navigation menu.
+        """
+        expect(
+            self.hamburger_menu_button
+        ).to_be_visible(timeout=10000)
+
+        self.hamburger_menu_button.click()
+
+    def verify_responsive_nav_link_visible(self, name: str):
+        """
+        Verify that a navigation link is visible inside the
+        responsive hamburger menu.
+
+        Unlike the desktop navigation, this method does not
+        open the desktop 'More' menu.
+        """
+        locator = self._locator_for(name)
+
+        expect(
+            locator
+        ).to_be_visible(timeout=10000)
+    
+
+    def verify_all_responsive_nav_links_visible(self):
+        """
+        Verify all navigation links are visible after opening the
+        responsive hamburger menu.
+        """
+        for name in self.ALL_NAV_LABELS_IN_ORDER:
+            self.verify_responsive_nav_link_visible(name)
