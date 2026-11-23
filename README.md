@@ -1,8 +1,4 @@
 # UCMS Login Automation Framework
-
-Professional, beginner-friendly automation suite for the **UCMS Login & Dashboard** modules  
-using **Python + Playwright + Pytest + Page Object Model (POM)**.
-
 Application under test:  
 https://ucms.dev.geniussystems.com.np/login
 
@@ -36,7 +32,7 @@ ucms_login_automation/
 
 - Python 3.10+
 - pip
-- Git (optional)
+- Git
 
 ---
 
@@ -44,7 +40,7 @@ ucms_login_automation/
 
 ```bash
 # 1. Clone / navigate into the project
-cd ucms_login_automation
+cd ucms_automation
 
 # 2. Create a virtual environment (recommended)
 python -m venv venv
@@ -78,6 +74,10 @@ pytest -m login
 
 # Run a single test case
 pytest tests/test_login.py::test_TC_LOGIN_001_login_with_valid_credentials
+
+#Playwright Codegen 
+playwright codegen https://ucms.dev.geniussystems.com.np/ 
+
 
 # Run headed (see the browser)
 HEADLESS=false pytest
@@ -126,4 +126,3 @@ Screenshots of failed tests are saved under `screenshots/`.
 | 403 / network error            | Confirm the environment can reach the application URL |
 
 ---
-

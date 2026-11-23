@@ -67,6 +67,22 @@ def credentials():
 
     return Config.VALID_USERNAME, Config.VALID_PASSWORD
 
+@pytest.fixture
+def restricted_credentials():
+    """
+    Return the restricted-role UCMS username and password from .env.
+    Used for nav bar role-based visibility tests (TC_NAVBAR_017, 018, 043, 059)
+    where this account must lack access to at least one module (e.g. Outages
+    or Port Allocations - confirm which with whoever seeded the test account).
+    """
+    if not Config.has_restricted_credentials():
+        pytest.fail(
+            "Restricted-role credentials are missing. "
+            "Set RESTRICTED_USERNAME and RESTRICTED_PASSWORD in .env."
+        )
+
+    return Config.RESTRICTED_USERNAME, Config.RESTRICTED_PASSWORD
+
 
 # ============================================================================
 # AUTHENTICATION / SESSION DIAGNOSTICS
@@ -251,20 +267,11 @@ def pytest_html_report_title(report):
     """
     Set the title of the pytest HTML report.
     """
-    report.title = "UCMS - Automation Report"
+    report.title = "UCMS-Automation Report"
 
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
-    """
-    Capture a full-page screenshot whenever a test fails.
-
-    The screenshot is saved under Config.SCREENSHOTS_DIR and embedded
-    into the pytest HTML report when pytest-html is available.
-
-    Screenshot failures are intentionally ignored so they never hide
-    the original test failure.
-    """
     outcome = yield
     report = outcome.get_result()
 

@@ -20,6 +20,11 @@ class Config:
     LOGIN_URL: str = f"{BASE_URL}/login"
     DASHBOARD_URL: str = f"{BASE_URL}/dashboard" 
     NETWORK_EXPLORER_URL: str = f"{BASE_URL}/map"
+    CATALOG_URL: str = f"{BASE_URL}/catalog/regions"
+    ACCESS_NETWORK_URL: str = f"{BASE_URL}/access-network/olts"
+    PORT_TRACE_URL: str = f"{BASE_URL}/port-trace"
+    PORT_ALLOCATIONS_URL: str = f"{BASE_URL}/port-allocations"
+    OUTAGES_URL: str = f"{BASE_URL}/outage-maintenance"
     PROTECTED_URL: str = NETWORK_EXPLORER_URL
 
     # Credentials
@@ -27,6 +32,8 @@ class Config:
     VALID_PASSWORD: str = os.getenv("VALID_PASSWORD")
     LOCKED_USERNAME: str = os.getenv("LOCKED_USERNAME")
     LOCKED_PASSWORD:str = os.getenv("LOCKED_PASSWORD")
+    RESTRICTED_USERNAME:str = os.getenv("RESTRICTED_USERNAME")
+    RESTRICTED_PASSWORD:str = os.getenv("RESTRICTED_PASSWORD")
 
     # User display info (from profile button)
     USER_FULL_NAME: str = os.getenv("USER_FULL_NAME", "Sushan Vaidya")
@@ -53,3 +60,10 @@ class Config:
     @classmethod
     def has_valid_credentials(cls) -> bool:
         return bool(cls.VALID_USERNAME and cls.VALID_PASSWORD)
+
+    @classmethod
+    def has_restricted_credentials(cls) -> bool:
+        return bool(
+            cls.RESTRICTED_USERNAME
+            and cls.RESTRICTED_PASSWORD
+        )
