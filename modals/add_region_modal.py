@@ -8,6 +8,7 @@ class AddRegionModal:
 
     def __init__(self, page: Page):
         self.page = page
+        self._page = page
 
         # -----------------------------------------------------------
         # Trigger - lives on the Coverage panel, opens this modal.
@@ -15,7 +16,7 @@ class AddRegionModal:
         self.add_region_trigger_button = page.get_by_role("button", name="Add region")
 
         # -----------------------------------------------------------
-        # Modal chrome - CONFIRMED
+        # Modal chrome
         # -----------------------------------------------------------
         self.modal_heading = page.get_by_role("heading", name=td.MODAL_TITLE)
         self.close_button = page.get_by_title("Close")
@@ -27,76 +28,61 @@ class AddRegionModal:
         self.region_name_input = page.get_by_placeholder(td.REGION_NAME_PLACEHOLDER)
 
         # -----------------------------------------------------------
+        # Coverage area map (Leaflet) - polygon drawing and keyboard controls
+        # -----------------------------------------------------------
+        self.map_container = page.locator(".leaflet-container").last
+        self.leaflet_zoom_in_button = page.locator("a.leaflet-control-zoom-in")
+        self.leaflet_zoom_out_button = page.locator("a.leaflet-control-zoom-out")
+
+        # -----------------------------------------------------------
         # Actions - CONFIRMED
-        # (submit button needs exact=True: the trigger button is also
-        # named "Add region", just lowercase "r")
+        # (the trigger button is also named "Add region", so the submit
+        # button is found by its type instead)
         # -----------------------------------------------------------
         self.submit_button = page.locator('button[type="submit"]')
         self.cancel_button = page.get_by_role("button", name="Cancel")
 
-        self.leaflet_zoom_in_button = page.locator(
-            "a.leaflet-control-zoom-in"
-        )
-        self.leaflet_zoom_out_button = page.locator(
-            "a.leaflet-control-zoom-out"
-        )
-
         # -----------------------------------------------------------
-        # Field validation errors - message text CONFIRMED, exact DOM
-        # location still a best-effort guess (plain text node lookup).
+        # Field validation errors
         # -----------------------------------------------------------
         self.region_name_required_error = page.get_by_text(
             re.compile(re.escape(td.REGION_NAME_REQUIRED), re.IGNORECASE)
         )
-        # "Already exists" is a fragment, not necessarily the full message
-        # (e.g. could render as "Region name already exists") - kept as a
-        # case-insensitive substring match rather than exact=True.
         self.duplicate_name_error = page.get_by_text(
             re.compile(re.escape(td.REGION_NAME_DUPLICATE), re.IGNORECASE)
         )
-        
         self.name_too_long_error = (
-            page.get_by_role("alert")
-            .filter(has_text=td.REGION_NAME_TOO_LONG)
+            page.get_by_role("alert").filter(has_text=td.REGION_NAME_TOO_LONG)
         )
 
         # -----------------------------------------------------------
-        # Submission notifications - message text CONFIRMED.
-        # TODO: confirm the actual toast/banner container role - these
-        # currently just locate the message text itself, which is usually
-        # enough, but wrap in a role="status"/role="alert" container lookup
-        # if the app needs that for visibility timing / a11y assertions.
+        # Submission notifications
         # -----------------------------------------------------------
         self.success_toast = page.get_by_text(td.REGION_ADDED_SUCCESS_PATTERN)
-
-        # Shown when the create-region request fails due to an expired/
-        # cleared session (401 Unauthenticated) - used by the
-        # cleared-session test (TC_ADDREGION_022).
+        # 401 - expired/cleared session (TC_021)
         self.unauthenticated_error_toast = page.get_by_text(
-            td.NETWORK_ERROR_PATTERN, exact=True
+            td.UNAUTHENTICATED_MESSAGE, exact=True
         )
-        # Shown when the create-region request fails due to a network/server
-        # issue (offline, 5xx, aborted request) - used by the server-failure
-        # test (TC_ADDREGION_020).
+        # Offline / 5xx / aborted request (TC_018)
         self.server_unreachable_error_toast = page.get_by_text(
-            td.SESSION_ERROR_PATTERN, exact=True
+            td.SERVER_UNREACHABLE_MESSAGE, exact=True
         )
-        # Generic fallback for any test that just needs "an error showed up"
-        # without pinning the exact wording yet.
+        # Permission denied for a user without create rights (TC_026)
+        self.permission_error = page.get_by_text(td.PERMISSION_ERROR_PATTERN).first
         self.error_toast = page.get_by_role("alert")
 
         # -----------------------------------------------------------
-        # Hierarchy tree - CONFIRMED heading; row text format confirmed.
+        # Hierarchy tree
         # -----------------------------------------------------------
         self.hierarchy_heading = page.get_by_role("heading", name="Hierarchy")
-        self._page = page
 
+    # =================================================================
+    # Locators
+    # =================================================================
     def region_tree_node(self, region_name: str) -> Locator:
+        """Tree row of every region with this name ("Region: {ID} - {Name}")."""
         pattern = re.compile(rf"^Region:\s+\S+\s+-\s+{re.escape(region_name)}$")
         return self._page.get_by_text(pattern, exact=True)
-
-    def verify_hierarchy_panel_open(self):
-        expect(self.hierarchy_heading).to_be_visible()
 
     # =================================================================
     # Actions
@@ -121,6 +107,19 @@ class AddRegionModal:
     def clear_region_name(self):
         self.region_name_input.fill("")
 
+    def draw_coverage_polygon(self, points: list[tuple[float, float]] | None = None):
+        """Click the given relative positions on the modal map to draw a polygon."""
+        points = points or td.POLYGON_POINTS
+        expect(self.map_container).to_be_visible()
+
+        box = self.map_container.bounding_box()
+        for rel_x, rel_y in points:
+            self.page.mouse.click(
+                box["x"] + box["width"] * rel_x,
+                box["y"] + box["height"] * rel_y,
+            )
+            self.page.wait_for_timeout(150)
+
     def submit(self):
         expect(self.submit_button).to_be_visible()
         self.submit_button.click()
@@ -133,6 +132,15 @@ class AddRegionModal:
 
     def verify_modal_closed(self):
         expect(self.modal_heading).to_be_hidden()
+
+    def verify_hierarchy_panel_open(self):
+        expect(self.hierarchy_heading).to_be_visible()
+
+    def verify_region_tree_loaded(self):
+        """At least one region row is listed in the Coverage tree."""
+        expect(
+            self._page.get_by_text(re.compile(r"^Region:\s+\S+\s+-\s+")).first
+        ).to_be_visible(timeout=15000)
 
     def verify_region_name_value(self, expected: str):
         expect(self.region_name_input).to_have_value(expected)

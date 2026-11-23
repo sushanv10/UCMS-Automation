@@ -7,12 +7,9 @@ from config.config import Config
 class NavBar:
     def __init__(self, page: Page):
         self.page = page
-
         # -----------------------------------------------------------
         # Logo
         # -----------------------------------------------------------
-        # TODO: not present in the supplied codegen trace - confirm the
-        # exact accessible name/role for the logo link.
         self.ucms_logo = page.get_by_role("link", name="UCMS UCMS")
 
         # -----------------------------------------------------------

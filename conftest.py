@@ -267,20 +267,11 @@ def pytest_html_report_title(report):
     """
     Set the title of the pytest HTML report.
     """
-    report.title = "UCMS - Automation Report"
+    report.title = "UCMS-Automation Report"
 
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item, call):
-    """
-    Capture a full-page screenshot whenever a test fails.
-
-    The screenshot is saved under Config.SCREENSHOTS_DIR and embedded
-    into the pytest HTML report when pytest-html is available.
-
-    Screenshot failures are intentionally ignored so they never hide
-    the original test failure.
-    """
     outcome = yield
     report = outcome.get_result()
 
