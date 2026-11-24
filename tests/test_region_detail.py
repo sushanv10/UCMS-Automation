@@ -9,7 +9,7 @@ from modals.region_detail_modal import RegionDetailsModal
 from pages.login_page import LoginPage
 from pages.network_explorer_page import NetworkExplorerPage
 from test_data import region_detail_test_data as td
-from utils.helpers import unique  # adjust the import path to where unique() lives
+from utils.helpers import unique
 
 
 # ---------------------------------------------------------------------------

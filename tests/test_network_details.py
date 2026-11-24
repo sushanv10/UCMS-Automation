@@ -1,13 +1,6 @@
 """
-Network Details automation (TC_NETWORK_DETAILS_001 .. 027).
+Network Details automation.
 
-* Primary region "Region - Network_Details_Test" and network
-  "Network_Details_Test" are created ONLY if missing (_ensure_region /
-  _ensure_network), so re-runs never collide.
-* Scenario-specific networks (Active, Inactive, Fresh, No polygon, etc.)
-  use unique() so each run is isolated.
-* All test data lives in test_data/network_details_test_data.py and matches
-  the sheet Test Data column.
 """
 from __future__ import annotations
 
