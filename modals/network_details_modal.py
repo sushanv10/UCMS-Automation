@@ -276,21 +276,17 @@ class NetworkDetailsModal:
     # =================================================================
     # Region tree actions
     # =================================================================
+
     def expand_region(self, region_name: str):
         """
         Expand the region if it is collapsed.
 
-        Wait for the Coverage tree update to settle before interacting.
-        Avoid unnecessary clicks when the region is already expanded.
-        Verify that the region remains expanded after clicking.
+        If the region is already expanded, do nothing.
         """
 
         row = self._region_container(region_name)
 
         expect(row).to_be_visible(timeout=15000)
-
-        # Allow the Coverage tree to finish its asynchronous update.
-        self.page.wait_for_timeout(2000)
 
         expand_button = row.get_by_role(
             "button",
@@ -303,14 +299,13 @@ class NetworkDetailsModal:
         )
 
         # Already expanded.
-        if collapse_button.count() > 0 and collapse_button.first.is_visible():
+        if collapse_button.count() > 0:
             return
 
         # Currently collapsed.
-        if expand_button.count() > 0 and expand_button.first.is_visible():
+        if expand_button.count() > 0:
             expand_button.first.click()
 
-            # Confirm that the Region has expanded successfully.
             expect(
                 collapse_button.first
             ).to_be_visible(timeout=10000)
@@ -318,11 +313,10 @@ class NetworkDetailsModal:
             return
 
         raise AssertionError(
-            f"Could not find a visible expand/collapse button "
+            f"Could not find the expand/collapse button "
             f"for region {region_name!r}. "
             f"Region row text: {row.inner_text()!r}"
         )
-
 
     # =================================================================
     # Add Network
@@ -357,6 +351,85 @@ class NetworkDetailsModal:
         expect(button).to_be_enabled()
 
         button.click()
+
+    # =================================================================
+    # Add Row (network-level '+')
+    # =================================================================
+
+    def _network_container(self, region_id: str, network_name: str) -> Locator:
+        """Parent .map-panel-tree-row for a network button."""
+        network_button = self.network_rows(region_id, network_name).first
+        return self._page.locator(".map-panel-tree-row").filter(
+            has=network_button
+        ).first
+
+    def row_rows(self, network_id: str, row_name: str) -> Locator:
+        """
+        Locate a row button under a network.
+
+        Example:
+            G277-D01-R01 - Banner Check Row
+            Row: G277-D01-R01 - Banner Check Row
+        """
+        pattern = re.compile(
+            rf"^(?:Row:\s*)?{re.escape(network_id)}-\S+\s+-\s+"
+            rf"{re.escape(row_name)}$"
+        )
+        return self._page.locator("button").filter(has_text=pattern)
+
+    def expand_network(self, region_id: str, network_name: str):
+        """Expand the network if collapsed so its rows are listed."""
+        row = self._network_container(region_id, network_name)
+        expect(row).to_be_visible(timeout=15000)
+
+        expand_button = row.get_by_role(
+            "button", name=re.compile(r"expand", re.I)
+        )
+        collapse_button = row.get_by_role(
+            "button", name=re.compile(r"collapse", re.I)
+        )
+
+        if collapse_button.count() > 0:
+            return
+
+        if expand_button.count() > 0:
+            expand_button.first.click()
+            expect(collapse_button.first).to_be_visible(timeout=10000)
+            return
+
+        # Some trees use a chevron without an accessible name – click first button.
+        chevron = row.locator("button").first
+        if chevron.count() > 0:
+            chevron.click()
+            self._page.wait_for_timeout(300)
+
+    def add_row_button(self, region_id: str, network_name: str) -> Locator:
+        """Locate the '+' (Add row) button on the network tree-row."""
+        row = self._network_container(region_id, network_name)
+        named = row.get_by_role(
+            "button", name=re.compile(r"add row", re.I)
+        )
+        if named.count() > 0:
+            return named.first
+        return row.locator("button").last
+
+    def open_add_row(self, region_name: str, network_name: str) -> str:
+        """
+        Expand the region, click the network's '+' to open Add Row.
+        Returns the network ID read from the tree.
+        """
+        region_id = self.get_region_id(region_name)
+        self.expand_region(region_name)
+        network_id = self.get_network_id(region_id, network_name)
+
+        button = self.add_row_button(region_id, network_name)
+        expect(button).to_be_visible(timeout=15000)
+        expect(button).to_be_enabled()
+        button.click()
+
+        self.opened_region_id = region_id
+        self.opened_network_id = network_id
+        return network_id
 
     # =================================================================
     # Open Network Details
