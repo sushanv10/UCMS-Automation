@@ -110,7 +110,6 @@ def _ensure_network(
         refresh=True,
     )
 
-
 def _reload_coverage(ctx: Ctx):
     """
     Reload the page, reopen Coverage and expand the original region.
