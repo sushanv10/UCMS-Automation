@@ -15,7 +15,6 @@ class LoginPage:
         self.password_input = page.locator("#password")
         self.sign_in_button = page.locator('button[type="submit"]')
     
-        
 
     def navigate(self):
         """Navigate to the UCMS login page."""
