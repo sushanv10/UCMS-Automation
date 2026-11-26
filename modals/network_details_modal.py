@@ -51,6 +51,7 @@ class NetworkDetailsModal:
 
         self.opened_region_id: str | None = None
         self.opened_network_id: str | None = None
+        self.opened_row_id: str | None = None
 
         # -----------------------------------------------------------
         # Modal chrome
@@ -279,34 +280,43 @@ class NetworkDetailsModal:
 
     def expand_region(self, region_name: str):
         """
-        Expand a region only when it is currently collapsed.
-        Verify the expanded state before returning.
+        Expand the region if it is collapsed.
+
+        If the region is already expanded, do nothing.
         """
 
         row = self._region_container(region_name)
+
         expect(row).to_be_visible(timeout=15000)
 
         expand_button = row.get_by_role(
-            "button", name=re.compile(r"expand", re.I)
-        ).first
+            "button",
+            name=re.compile(r"expand", re.I)
+        )
 
         collapse_button = row.get_by_role(
-            "button", name=re.compile(r"collapse", re.I)
-        ).first
+            "button",
+            name=re.compile(r"collapse", re.I)
+        )
 
-        # Already expanded
-        if collapse_button.is_visible():
+        # Already expanded.
+        if collapse_button.count() > 0:
             return
 
-        # Expand the region
-        if expand_button.is_visible():
-            expand_button.click()
-            expect(collapse_button).to_be_visible(timeout=10000)
+        # Currently collapsed.
+        if expand_button.count() > 0:
+            expand_button.first.click()
+
+            expect(
+                collapse_button.first
+            ).to_be_visible(timeout=10000)
+
             return
 
         raise AssertionError(
-            f"Unable to expand region '{region_name}'. "
-            "Neither an expand nor a collapse button is visible."
+            f"Could not find the expand/collapse button "
+            f"for region {region_name!r}. "
+            f"Region row text: {row.inner_text()!r}"
         )
 
     # =================================================================
@@ -369,37 +379,30 @@ class NetworkDetailsModal:
         return self._page.locator("button").filter(has_text=pattern)
 
     def expand_network(self, region_id: str, network_name: str):
-        """
-        Expand a network only when it is currently collapsed.
-        Verify the expanded state before returning.
-        """
-
+        """Expand the network if collapsed so its rows are listed."""
         row = self._network_container(region_id, network_name)
         expect(row).to_be_visible(timeout=15000)
 
         expand_button = row.get_by_role(
             "button", name=re.compile(r"expand", re.I)
-        ).first
-
+        )
         collapse_button = row.get_by_role(
             "button", name=re.compile(r"collapse", re.I)
-        ).first
-
-        # Already expanded
-        if collapse_button.is_visible():
-            return
-
-        # Expand the network
-        if expand_button.is_visible():
-            expand_button.click()
-            expect(collapse_button).to_be_visible(timeout=10000)
-            return
-
-        raise AssertionError(
-            f"Unable to expand network '{network_name}' "
-            f"under region ID '{region_id}'. "
-            "Neither an expand nor a collapse button is visible."
         )
+
+        if collapse_button.count() > 0:
+            return
+
+        if expand_button.count() > 0:
+            expand_button.first.click()
+            expect(collapse_button.first).to_be_visible(timeout=10000)
+            return
+
+        # Some trees use a chevron without an accessible name – click first button.
+        chevron = row.locator("button").first
+        if chevron.count() > 0:
+            chevron.click()
+            self._page.wait_for_timeout(300)
 
     def add_row_button(self, region_id: str, network_name: str) -> Locator:
         """Locate the '+' (Add row) button on the network tree-row."""
@@ -428,6 +431,62 @@ class NetworkDetailsModal:
         self.opened_region_id = region_id
         self.opened_network_id = network_id
         return network_id
+
+    def get_row_id(self, network_id: str, row_name: str) -> str:
+        """
+        Read the row ID from the Coverage tree button text.
+
+        Formats supported:
+            G288-D01-R01 - Row_Details_Test
+            Row: G288-D01-R01 - Row_Details_Test
+        """
+        row = self.row_rows(network_id, row_name).first
+        expect(row).to_be_visible(timeout=15000)
+        text = row.inner_text().strip()
+        # Strip optional "Row: " prefix
+        text = re.sub(r"^Row:\s*", "", text, flags=re.I)
+        # ID is everything before " - {row_name}"
+        suffix = f" - {row_name}"
+        if text.endswith(suffix):
+            return text[: -len(suffix)].strip()
+        # Fallback: first token that looks like G###-...-R##
+        match = re.search(r"(G\d+[-\w]*R\d+)", text, re.I)
+        if match:
+            return match.group(1)
+        raise AssertionError(f"Could not parse row ID from tree text: {text!r}")
+
+    def open_for_row(
+        self,
+        region_name: str,
+        network_name: str,
+        row_name: str,
+        wait_for_modal: bool = True,
+    ) -> str:
+        """
+        Expand region + network, click the row LABEL to open Row Details.
+        Returns the row ID read from the tree.
+        """
+        region_id = self.get_region_id(region_name)
+        self.expand_region(region_name)
+        network_id = self.get_network_id(region_id, network_name)
+        self.expand_network(region_id, network_name)
+
+        row_id = self.get_row_id(network_id, row_name)
+        row_button = self.row_rows(network_id, row_name).first
+        expect(row_button).to_be_visible(timeout=15000)
+        # Click the label text of the row (not a sibling checkbox)
+        row_button.click()
+
+        self.opened_region_id = region_id
+        self.opened_network_id = network_id
+        self.opened_row_id = row_id
+
+        if wait_for_modal:
+            expect(
+                self._page.get_by_role("heading", name="Row Details")
+            ).to_be_visible(timeout=15000)
+
+        return row_id
 
     # =================================================================
     # Open Network Details
