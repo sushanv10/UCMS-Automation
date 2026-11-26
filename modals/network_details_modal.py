@@ -83,13 +83,9 @@ class NetworkDetailsModal:
         # -----------------------------------------------------------
         self.map = page.locator(".leaflet-container")
 
-        self.zoom_in_button = self.map.locator(
-            ".leaflet-control-zoom-in"
-        )
+        self.zoom_in_button = page.get_by_label("Zoom in")
 
-        self.zoom_out_button = self.map.locator(
-            ".leaflet-control-zoom-out"
-        )
+        self.zoom_out_button = page.get_by_label("Zoom out")
 
         self.polygon_shapes = self.map.locator(
             "path.leaflet-interactive"
